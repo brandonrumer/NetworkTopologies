@@ -1,0 +1,54 @@
+configure terminal
+
+hostname HUB-VTEP-GW
+
+virtual-network 10100
+ vxlan-vni 10100
+  remote-vtep 10.0.0.2
+  end
+configure terminal
+
+virtual-network 10200
+ vxlan-vni 10200
+  remote-vtep 10.0.0.2
+  end
+configure terminal
+
+interface vlan100
+ virtual-network 10100
+ no shutdown
+ exit
+interface vlan200
+ virtual-network 10200
+ no shutdown
+ exit
+!
+interface loopback255
+ description NVE
+ no shutdown
+ ip address 10.0.0.1/32
+!
+
+exit
+
+nve
+ source-interface loopback255
+
+exit
+
+interface ethernet1/1/1
+ no shutdown
+ no switchport
+ ip address 172.17.11.1/31
+ flowcontrol receive off
+!
+interface ethernet1/1/2
+ description To_L3-GW
+ no shutdown
+ switchport mode trunk
+ switchport access vlan 1
+ switchport trunk allowed vlan 100,200
+
+exit
+
+ip route 0.0.0.0/0 172.17.11.0

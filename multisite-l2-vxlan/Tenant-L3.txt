@@ -1,0 +1,30 @@
+conf t
+
+no logging console
+no logging monitor
+
+hostname Tenant-L3
+
+! This will crash the image in Eve if it's a L2 image, although it shouldn't
+ip routing
+! Switch won't crash until it tries to route
+
+vlan 100
+name Users
+vlan 200
+name VOIP
+
+interface Ethernet0/0
+ description To-HUB
+ switchport trunk allowed vlan 100,200
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+
+interface Vlan100
+ ip address 10.0.100.1 255.255.255.0
+ no shut
+
+interface Vlan200
+ ip address 10.0.200.1 255.255.255.0
+ no shut
+

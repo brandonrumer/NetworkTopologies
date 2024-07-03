@@ -1,0 +1,29 @@
+conf t
+
+no logging console
+no logging monitor
+
+hostname User-Switch
+
+vlan 100
+name users
+vlan 200
+name VOIP
+
+interface Ethernet0/0
+ description UPLINK-ToVTEP
+ switchport trunk allowed vlan 100,200
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ duplex auto
+!
+interface Ethernet0/1
+ description UserPC
+ switchport access vlan 100
+ no shut
+
+interface Ethernet0/2
+ description VOIP
+ switchport access vlan 200
+ no shut
+

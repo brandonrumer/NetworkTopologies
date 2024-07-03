@@ -1,0 +1,61 @@
+
+hostname MS-VPN
+!
+interface GigabitEthernet0/0
+ description To-HUB
+ nameif outside
+ security-level 0
+ ip address 192.168.11.1 255.255.255.254 
+!
+interface GigabitEthernet0/1
+ description Inside
+ nameif inside
+ security-level 100
+ ip address 172.17.12.0 255.255.255.254 
+!
+
+interface Tunnel1101
+ nameif Tunnel1101
+ ip address 172.16.1.1 255.255.255.254 
+ tunnel source interface outside
+ tunnel destination 192.168.11.0
+ tunnel mode ipsec ipv4
+ tunnel protection ipsec profile IPSEC_PROFILE
+
+route outside 0.0.0.0 0.0.0.0 192.168.11.0 1
+route Tunnel1101 10.0.0.1 255.255.255.255 172.16.1.0 1
+route inside 10.0.0.2 255.255.255.255 172.17.12.1 1
+route Tunnel1101 172.17.11.0 255.255.255.254 172.16.1.0 1
+
+crypto ipsec ikev2 ipsec-proposal IPSEC_Proposal
+ protocol esp encryption aes-gcm-256 aes-256
+ protocol esp integrity sha-512
+
+crypto ipsec profile IPSEC_PROFILE
+ set ikev2 ipsec-proposal IPSEC_Proposal
+ set pfs group14
+ set security-association lifetime kilobytes 10000
+ set security-association lifetime seconds 120
+
+crypto ipsec security-association pmtu-aging infinite
+
+crypto ikev2 policy 1
+ encryption aes-gcm-256
+ integrity null
+ group 20
+ prf sha384
+ lifetime seconds 28800
+
+crypto ikev2 enable outside
+
+group-policy Site-To-Site-GP internal
+group-policy Site-To-Site-GP attributes
+ vpn-tunnel-protocol ikev2 
+
+tunnel-group 192.168.11.0 type ipsec-l2l
+tunnel-group 192.168.11.0 general-attributes
+ default-group-policy Site-To-Site-GP
+
+tunnel-group 192.168.11.0 ipsec-attributes
+ ikev2 remote-authentication pre-shared-key cisco
+ ikev2 local-authentication pre-shared-key cisco
