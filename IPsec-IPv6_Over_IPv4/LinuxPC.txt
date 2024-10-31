@@ -1,7 +1,0 @@
----Linux Ostinato VM---
-user/pass
-root/eve
-
-
-sudo ifconfig eth1 10.30.2.2 netmask 255.255.255.0
-sudo ip route add 10.30.0.0/16 via 10.30.2.1
