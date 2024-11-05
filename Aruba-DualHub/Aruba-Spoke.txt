@@ -1,0 +1,301 @@
+! Enable the licensed features - you will still need to APPLY the actual license
+! Verify that the default-gateway is not the oob network. If it is, remove it:
+show running-config | include "default-gateway"
+
+!  The single route, below, is for management access to the OOB / Gi0/0/0
+configure terminal
+ip route 192.168.1.0 255.255.255.0 192.168.20.1
+write memory
+
+
+cd /mm
+configure terminal
+license-pool-profile-root
+    pefng-licenses-enable
+    acr-license-enable
+write memory
+cd /mm/mynode
+
+! set the global MTU for the vpn to work:
+configure terminal 
+ crypto ipsec mtu 1114
+ y
+! The above 'y' confirms the change
+ ntp server 192.168.20.1
+ hostname "Aruba-Spoke"
+ clock timezone America/New_York -04 0
+
+write memory
+
+! Reboot the system so the features take effect, via 'reload'
+! Once the system is rebooted you will need to license the system via the WebUI
+! This would also be a good time to generate management and VPN certificates
+
+
+vlan 10
+  description "mgmt"
+  exit
+vlan-name mgmt
+vlan mgmt 10
+interface vlan 10
+    description "mgmt"
+    ip address 192.168.20.197 255.255.255.0
+    exit
+
+vlan 12
+  description "outside"
+  exit
+vlan-name outside
+vlan outside 12
+interface vlan 12
+    mtu 1300
+    description "outside"
+    ip address 10.10.10.130 255.255.255.128
+    exit
+
+vlan 200
+  description "inside"
+  exit
+vlan-name inside
+vlan inside 200
+interface vlan 200
+    mtu 1300
+    description "inside"
+    ip address 172.16.1.1 255.255.255.0
+    exit
+
+! GRE Loopback
+interface loopback
+  ip address 192.168.255.3
+  exit
+
+
+
+! In the lab, gi0/0/0 is connected to my local LAN; prod it would be mgmt switch
+interface gigabitethernet 0/0/0
+    description "Management"
+    trusted
+    trusted vlan 10
+    switchport mode access
+    switchport access vlan 10
+    switchport trunk allowed vlan 10
+    no spanning-tree
+    no shut
+    exit
+
+interface gigabitethernet 0/0/1
+    description "Outside"
+    no trusted
+    no trusted vlan
+    switchport mode access
+    switchport access vlan 12
+    switchport trunk allowed vlan 12
+    no spanning-tree
+    no shut
+    exit
+
+interface gigabitethernet 0/0/2
+    description "Inside"
+    trusted
+    trusted vlan 200
+    switchport mode access
+    switchport access vlan 200
+    switchport trunk allowed vlan 200
+    no spanning-tree
+    no shut
+    exit
+
+! Force UDP
+crypto isakmp udpencap-behind-natdevice
+
+!------------ Start Certificate-based Auth Example ---------------------
+! get the remote cert's subnect name via "show crypto pki ServerCert [CertName] subject"
+
+crypto-local pki rcp [CA NAme]
+    revocation-check none
+
+! Spoke cert config
+crypto-local isakmp server-certificate [This Hubs Certificate Subject, ie "Aruba-Spoke1"]
+crypto-local isakmp ca-certificate "[CA Subject, ie "CA1.FQDN"]
+
+
+! dst-net should be /32 inside of VPN gateway
+! dst-net is the same ip as the gre target
+
+! In our scenario we are using the GRE tunnels that are built INSIDE the ipsec tunnel. This
+!  is because we need traffic failover from one hub to another. Because of this, our source
+!  and destination networks in the ipsec tunnel are the loopback IPs. The vlan defined here
+!  is the outside vlan.
+! Since there are two IPsec tunnels you will need TWO ACR licenses!
+
+crypto-local ipsec-map aruba-hub1 200
+    version v2
+    set ikev2-policy 10009
+    peer-ip 10.10.10.2
+    peer-cert-dn "[Full DN from the above command]"
+    vlan 12
+    src-net 192.168.255.3 255.255.255.255
+    dst-net 192.168.255.1 255.255.255.255
+    set transform-set "default-gcm256"
+    set security-association lifetime seconds 300
+    set pfs group20
+    pre-connect
+    trusted
+    force-natt
+    set ca-certificate "[CA Subject, ie "CA1.FQDN"]
+    set server-certificate [This Hubs Certificate Subject, ie "Aruba-Hub2"]
+    force-tunnel-mode
+
+crypto-local ipsec-map aruba-hub2 300
+    version v2
+    set ikev2-policy 10009
+    peer-ip 10.10.10.3
+    peer-cert-dn "[Full DN from the above command]"
+    vlan 12
+    src-net 192.168.255.3 255.255.255.255
+    dst-net 192.168.255.2 255.255.255.255
+    set transform-set "default-gcm256"
+    set security-association lifetime seconds 7200
+    set pfs group20
+    pre-connect
+    trusted
+    force-natt
+    set ca-certificate "[CA Subject, ie "CA1.FQDN"]
+    exit
+
+crypto ipsec mtu 1200
+y
+! The above 'y' confirms
+
+!------------ /End Certificate-based Auth Example ---------------------
+
+
+!------------ Start PSK-based Auth Example ---------------------
+! PSK to Hub
+crypto-local isakmp key "[password]" address 10.10.10.2 netmask 255.255.255.255
+crypto-local isakmp key "[password]" address 10.10.10.3 netmask 255.255.255.255
+
+crypto-local ipsec-map aruba-hub1 200
+    version v2
+    set ikev2-policy 10009
+    peer-ip 10.10.10.2
+    vlan 12
+    src-net 192.168.255.3 255.255.255.255
+    dst-net 192.168.255.1 255.255.255.255
+    set transform-set "default-gcm256"
+    set pfs group20
+    pre-connect
+    trusted
+    force-natt
+    force-tunnel-mode
+
+crypto-local ipsec-map aruba-hub2 300
+    version v2
+    set ikev2-policy 10009
+    peer-ip 10.10.10.3
+    vlan 12
+    src-net 192.168.255.3 255.255.255.255
+    dst-net 192.168.255.2 255.255.255.255
+    set transform-set "default-gcm256"
+    set pfs group20
+    pre-connect
+    trusted
+    force-natt
+    force-tunnel-mode
+    exit
+
+crypto ipsec mtu 1200
+y
+! The above 'y' confirms
+
+!------------ End PSK-based Auth Example ---------------------
+
+
+! The GRE tunnel needs to be inside the ipsec-map, so the
+!   tunnel destination is the loopback interface of the remote side
+! Keepalive is the GRE IP on the distant end
+interface tunnel 1
+    description "To_Aruba-Hub1"
+    tunnel mode gre ip
+    ip address 172.131.255.2 255.255.255.252
+    tunnel source loopback
+    tunnel destination 192.168.255.1
+    tunnel keepalive
+    tunnel keepalive icmp 192.168.255.1
+    trusted
+    mtu 1150
+!
+interface tunnel 2
+    description "To_Aruba-Hub2"
+    tunnel mode gre ip
+    ip address 172.131.255.6 255.255.255.252
+    tunnel source loopback
+    tunnel destination 192.168.255.2
+    tunnel keepalive
+    tunnel keepalive icmp 192.168.255.2
+    trusted
+    mtu 1150
+    exit
+
+! Create the GRE Tunnel group for the GRE tunnels going to the Hub VPN Gateways
+tunnel-group gre_hubs
+ tunnel 1
+ tunnel 2
+
+
+
+! ------------- Routes to Hubs -------------
+! Create Alias to easily identify what is what
+! For a single IP:
+!   host <ip_address>
+! For a subnet:
+!   network <subnet> <subnet_mask>
+! For an IP range:
+!   range <start_ip> <end_ip>
+
+! Local alias
+netdestination local-loopback
+ host 192.168.255.3
+
+! Remote alias for hub
+netdestination hub-inside
+ network 172.16.0.0 255.255.255.0
+netdestination hub1-loopback
+ host 192.168.255.1
+netdestination hub2-loopback
+ host 192.168.255.2
+
+! ------ PBR to hub networks ---------------
+ip access-list route hub_networks
+ description "Route user traffic to hubs"
+ any alias hub-inside any route tunnel-group gre_hubs
+ exit
+
+! Apply the user traffic toute ACL to the inside VLAN
+interface vlan 200
+ ip access-group in hub_networks
+ exit
+
+! ------ END PBR to hub networks ------------
+
+
+! -------This PBR doesn't work--------------
+! I think this doesnt work becuase the traffic is sourced from the local loopback
+! 
+! ip access-list route hub_loopbacks
+!  description "Routes needed for GRE tunnel at hubs"
+!  alias local-loopback alias hub1-loopback any route ipsec-map aruba-hub1
+!  alias local-loopback alias hub2-loopback any route ipsec-map aruba-hub2
+!  exit
+! 
+! Apply the loopback route ACL to the outside VLAN
+! interface vlan 12
+!   ip access-group in hub_loopbacks
+!   exit
+! -------END PBR doesn't work--------------
+
+
+! Routes to outside of the hub's interfaces
+! Because Aruba PBR doesn't work for this piece, we need to static route it
+ip route 192.168.255.1 255.255.255.255 ipsec aruba-hub1
+ip route 192.168.255.2 255.255.255.255 ipsec aruba-hub2

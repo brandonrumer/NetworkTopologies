@@ -1,0 +1,37 @@
+en
+conf t
+ no logging console
+ no logging monitor
+ no ip domain lookup
+
+
+hostname ISP-Transport
+
+vlan 11
+name Hub
+
+vlan 12
+name Spoke
+
+interface GigabitEthernet0/0
+ switchport access vlan 11
+ switchport mode access
+ negotiation auto
+!
+interface GigabitEthernet0/1
+ switchport access vlan 11
+ switchport mode access
+ negotiation auto
+!
+interface GigabitEthernet0/2
+ switchport access vlan 12
+ switchport mode access
+ negotiation auto
+
+interface Vlan11
+ description Hub
+ ip address 10.10.10.1 255.255.255.128
+!
+interface Vlan12
+ description Hub
+ ip address 10.10.10.129 255.255.255.128

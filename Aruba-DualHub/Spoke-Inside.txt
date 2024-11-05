@@ -1,0 +1,29 @@
+en
+conf t
+ no logging console
+ no logging monitor
+ no ip domain lookup
+
+
+hostname Spoke-Inside
+
+vlan 200
+name Hub-Inside
+
+interface GigabitEthernet0/0
+ switchport access vlan 200
+ switchport mode access
+ negotiation auto
+!
+interface GigabitEthernet0/1
+ switchport access vlan 200
+ switchport mode access
+ negotiation auto
+
+interface Vlan200
+ description Hubs Inside
+ ip address 172.16.1.2 255.255.255.0
+ no shutdown
+
+ ip route 0.0.0.0 0.0.0.0 172.16.1.1
+ 

@@ -1,0 +1,30 @@
+en
+conf t
+ no logging console
+ no logging monitor
+ no ip domain lookup
+
+
+hostname Hub-Inside
+
+vlan 100
+name Hub-Inside
+
+interface GigabitEthernet0/0
+ switchport access vlan 100
+ switchport mode access
+ negotiation auto
+!
+interface GigabitEthernet0/1
+ switchport access vlan 100
+ switchport mode access
+ negotiation auto
+
+interface Vlan100
+ description Hubs Inside
+ ip address 172.16.0.3 255.255.255.0
+ no shutdown
+!
+
+ ip route 0.0.0.0 0.0.0.0 172.16.0.1 
+ ip route 0.0.0.0 0.0.0.0 172.16.0.2 10

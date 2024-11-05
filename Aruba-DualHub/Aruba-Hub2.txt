@@ -1,0 +1,276 @@
+! Enable the licensed features - you will still need to APPLY the actual license
+! Verify that the default-gateway is not the oob network. If it is, remove it:
+show running-config | include "default-gateway"
+
+!  The single route, below, is for management access to the OOB / Gi0/0/0
+configure terminal
+ip route 192.168.1.0 255.255.255.0 192.168.20.1
+write memory
+
+
+cd /mm
+configure terminal
+license-pool-profile-root
+    pefng-licenses-enable
+    acr-license-enable
+write memory
+cd /mm/mynode
+
+! set the global MTU for the vpn to work:
+configure terminal 
+ crypto ipsec mtu 1114
+ y
+! The above 'y' confirms the change
+ ntp server 192.168.20.1
+ hostname "Aruba-Hub2"
+ clock timezone America/New_York -04 0
+
+write memory
+
+! Reboot the system so the features take effect, via 'reload'
+! Once the system is rebooted you will need to license the system via the WebUI
+! This would also be a good time to generate management and VPN certificates
+
+
+vlan 10
+  description "mgmt"
+  exit
+vlan-name mgmt
+vlan mgmt 10
+interface vlan 10
+    description "mgmt"
+    ip address 192.168.20.199 255.255.255.0
+    exit
+
+vlan 11
+  description "outside"
+  exit
+vlan-name outside
+vlan outside 11
+interface vlan 11
+    mtu 1300
+    description "outside"
+    ip address 10.10.10.3 255.255.255.128
+    exit
+
+vlan 100
+  description "inside"
+  exit
+vlan-name inside
+vlan inside 100
+interface vlan 100
+    mtu 1300
+    description "inside"
+    ip address 172.16.0.2 255.255.255.0
+    exit
+
+! GRE Loopback
+interface loopback 
+  ip address 192.168.255.2
+  exit
+
+
+! In the lab, gi0/0/0 is connected to my local LAN; prod it would be mgmt switch
+interface gigabitethernet 0/0/0
+    description "Management"
+    trusted
+    trusted vlan 10
+    switchport mode access
+    switchport access vlan 10
+    switchport trunk allowed vlan 10
+    no spanning-tree
+    no shut
+    exit
+
+interface gigabitethernet 0/0/1
+    description "Outside"
+    no trusted
+    no trusted vlan
+    switchport mode access
+    switchport access vlan 11
+    switchport trunk allowed vlan 11
+    no spanning-tree
+    no shut
+    exit
+
+interface gigabitethernet 0/0/2
+    description "Inside"
+    trusted
+    trusted vlan 100
+    switchport mode access
+    switchport access vlan 100
+    switchport trunk allowed vlan 100
+    no spanning-tree
+    no shut
+    exit
+
+! Force UDP
+crypto isakmp udpencap-behind-natdevice
+
+!------------ Start Certificate-based Auth Example ---------------------
+! get the remote cert's subnect name via "show crypto pki ServerCert [CertName] subject"
+
+crypto-local pki rcp [CA NAme]
+    revocation-check none
+
+! Hub cert config
+crypto-local isakmp server-certificate [This Hubs Certificate Subject, ie "Aruba-Hub2"]
+crypto-local isakmp ca-certificate "[CA Subject, ie "CA1.FQDN"]
+
+
+! dst-net should be /32 inside of VPN gateway
+! dst-net is the same ip as the gre target
+
+! In our scenario we are using the GRE tunnels that are built INSIDE the ipsec tunnel. This
+!  is because we need traffic failover from one hub to another. Because of this, our source
+!  and destination networks in the ipsec tunnel are the loopback IPs. The vlan defined here
+!  is the outside vlan.
+
+crypto-local ipsec-map Aruba-Spoke 200
+    version v2
+    set ikev2-policy 10009
+    peer-ip 10.10.10.130
+    peer-cert-dn "[Full DN from the above command]"
+    vlan 11
+    src-net 192.168.255.2 255.255.255.255
+    dst-net 192.168.255.3 255.255.255.255
+    set transform-set "default-gcm256"
+    set security-association lifetime seconds 300
+    set pfs group20
+    pre-connect
+    trusted
+    force-natt
+    set ca-certificate "[CA Subject, ie "CA1.FQDN"]
+    set server-certificate [This Hubs Certificate Subject, ie "Aruba-Hub2"]
+    force-tunnel-mode
+    set security-association lifetime seconds 7200
+    exit
+
+crypto ipsec mtu 1200
+y
+! The above 'y' confirms
+
+!------------ /End Certificate-based Auth Example ---------------------
+
+
+!------------ Start PSK-based Auth Example ---------------------
+! PSK to Spoke
+crypto-local isakmp key "[password]" address 10.10.10.130 netmask 255.255.255.255
+
+crypto-local ipsec-map Aruba-Spoke 200
+    version v2
+    set ikev2-policy 10009
+    peer-ip 10.10.10.130
+    vlan 11
+    src-net 192.168.255.2 255.255.255.255
+    dst-net 192.168.255.3 255.255.255.255
+    set transform-set "default-gcm256"
+    set pfs group20
+    pre-connect
+    trusted
+    force-natt
+    force-tunnel-mode
+    exit
+
+crypto ipsec mtu 1200
+y
+! The above 'y' confirms
+
+!------------ End PSK-based Auth Example ---------------------
+
+
+! The GRE tunnel needs to be inside the ipsec-map, so the
+!   tunnel destination is the loopback interface of the remote side
+! Keepalive is the loopback ip on the distant end
+interface tunnel 1
+    description "To_Spoke"
+    tunnel mode gre ip
+    ip address 172.131.255.5 255.255.255.252
+    tunnel source loopback
+    tunnel destination 192.168.255.3
+    tunnel keepalive
+    tunnel keepalive icmp 192.168.255.3
+    trusted
+    mtu 1150
+    exit
+   
+
+! ------------- Routes to Spokes -------------
+! Create Alias to easily identify what is what
+! For a single IP:
+!   host <ip_address>
+! For a subnet:
+!   network <subnet> <subnet_mask>
+! For an IP range:
+!   range <start_ip> <end_ip>
+
+! Local alias
+netdestination local-loopback
+ host 192.168.255.2
+
+! Remote alias for spoke 1
+netdestination spoke-inside
+ network 172.16.1.0 255.255.255.0
+netdestination spoke-loopback
+ host 192.168.255.3
+
+! Remote alias for spoke 2
+! ...
+
+! ------ PBR to spoke networks ---------------
+ip access-list route spoke_networks
+ description "Route traffic to users in Spoke sites"
+ any alias spoke-inside any route tunnel 1
+ exit
+
+ ! Apply the user traffic toute ACL to the inside VLAN
+interface vlan 100
+  ip access-group in spoke_networks
+  exit
+! ------ END PBR to spoke networks ---------------
+
+
+! -------This PBR doesn't work--------------
+! I think this doesnt work becuase the traffic is sourced from the local loopback
+!
+! ip access-list route spoke_loopbacks
+!  description "Routes needed for loopback at Spoke1 site"
+!  alias local-loopback alias spoke-loopback any route ipsec-map aruba-spoke
+!  exit
+! 
+! Apply the loopback route ACL to the outside VLAN
+! interface vlan 11
+!   ip access-group in spoke_loopbacks
+!   exit
+! -------END PBR doesn't work--------------
+
+! These are the routes we need and since PBR doesn't work we're doing static
+ip route 192.168.255.3 255.255.255.255 ipsec aruba-spoke
+
+
+! ------------- Routes to ISP -------------
+! THIS DOESNT WORK because traffic starts at the outside interface
+!  which would be 'out' not in.
+! 
+! netdestination local-outside
+!  host 10.10.10.3
+! netdestination spoke-outside
+!  host 10.10.10.130
+!
+! Configure the route to distant end through ISP
+! ip nexthop-list ISP
+!  ip 10.10.10.1
+!  exit
+!
+! ip access-list route to-spokes
+!  alias local-outside alias spoke-outside any route next-hop-list ISP
+!
+! Apply it to the internet-facing vlan
+! interface vlan 11
+!  ip access-group in to-isp
+! ------------- END Routes to ISP --------------
+
+
+! Routes to outside of the spoke's interface
+! Because Aruba PBR doesn't work for this piece, we need to static route it
+ip route 10.10.10.128 255.255.255.128 10.10.10.1
