@@ -1,0 +1,83 @@
+! This is a control node configuration. The order may be odd but it is (potentially) necessary
+
+conf t
+
+! Enable jumbo frames. The system will need to be rebooted.
+jumbo-frame reservation
+
+!  You will need to reboot if interface configs exist.
+cluster interface-mode individual force
+!
+
+
+hostname FW-02
+no http server enable
+!
+
+
+! VXLAN peer group - CCL IPs - include self
+object-group network cluster-peers
+ network-object host 172.32.255.1
+ network-object host 172.32.255.2
+ network-object host 172.32.255.3
+!
+
+
+interface GigabitEthernet0/2
+ description CCL_VTEP
+ nve-only cluster
+ nameif ccl
+ security-level 0
+ ip address 172.32.255.2 255.255.255.248
+ no shutdown
+!
+
+
+interface vni1
+ segment-id 210
+ vtep-nve 1
+
+mtu ccl 1654
+!
+
+
+nve 1
+ encapsulation vxlan
+ source-interface ccl
+ peer-group cluster-peers
+!
+
+
+ip local pool outside_pool  10.10.11.2-10.10.11.4 mask 255.255.255.240
+ip local pool inside_pool 10.10.11.66-10.10.11.68 mask 255.255.255.224
+ip local pool mgmt_pool 10.10.10.11-10.10.10.13 mask 255.255.255.0
+!
+
+
+interface GigabitEthernet0/0
+ nameif outside
+ security-level 0
+ ip address 10.10.11.1 255.255.255.240 cluster-pool outside_pool
+ no shutdown
+
+interface GigabitEthernet0/1
+ nameif inside
+ security-level 100
+ ip address 10.10.11.65 255.255.255.224 cluster-pool inside_pool
+ no shutdown
+
+interface Management0/0
+ nameif management
+ ip address 10.10.10.10 255.255.255.0 cluster-pool mgmt_pool
+ no shutdown
+!
+
+route management 0.0.0.0 0.0.0.0 10.10.10.1
+!
+
+cluster group cluster1
+ local-unit B
+ cluster-interface vni1 ip 172.32.254.2 255.255.255.248
+ priority 2
+ enable noconfirm
+!

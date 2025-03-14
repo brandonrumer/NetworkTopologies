@@ -1,0 +1,37 @@
+conf t
+ ztd cancel
+ hostname SW-T-01
+
+interface vlan 212
+ description trusted-10.10.11.64/27
+ ip address 10.10.11.70/27
+ no shutdown
+
+conf t
+
+
+interface ethernet1/1/1
+ description To-ASAv-1
+ no shutdown
+ switchport mode access
+ switchport access vlan 212
+ spanning-tree port type edge
+
+interface ethernet1/1/2
+ description To-ASAv-2
+ no shutdown
+ switchport mode access
+ switchport access vlan 212
+ spanning-tree port type edge
+
+ interface ethernet1/1/3
+ description To-ASAv-3
+ no shutdown
+ switchport mode access
+ switchport access vlan 212
+ spanning-tree port type edge
+
+ip route 0.0.0.0/0 10.10.11.65 
+
+end
+

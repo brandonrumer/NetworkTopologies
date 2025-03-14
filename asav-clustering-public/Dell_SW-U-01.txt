@@ -1,0 +1,78 @@
+conf t
+ ztd cancel
+ hostname SW-U-01
+
+interface vlan 216
+ description outside-10.10.11.0/28_for_PBR
+ ip address 10.10.11.14/28
+ no shutdown
+!
+
+conf t
+interface ethernet1/1/1
+ description To-ASAv-1
+ no shutdown
+ switchport access vlan 216
+ flowcontrol receive off
+ spanning-tree port type edge
+!
+interface ethernet1/1/2
+ description To-ASAv-2
+ no shutdown
+ switchport access vlan 216
+ flowcontrol receive off
+ spanning-tree port type edge
+!
+interface ethernet1/1/3
+ description To-ASAv-3
+ no shutdown
+ switchport access vlan 216
+ flowcontrol receive off
+ spanning-tree port type edge
+
+
+end
+
+
+
+!!! PBR - DOESNT WORK in Eve-NG - unable to test on physical hardware !!!
+
+track 1 
+ ip 10.10.11.2 reachability 
+track 2 
+ ip 10.10.11.3 reachability 
+track 3 
+ ip 10.10.11.4 reachability 
+
+
+ip access-list PBR_TRAFFIC
+ permit ip 10.10.11.64/27 any log
+
+
+route-map PBR permit 10
+ match ip address PBR_TRAFFIC
+ set ip next-hop 10.10.11.2 track 1
+exit
+
+route-map PBR permit 20
+ match ip address PBR_TRAFFIC
+ set ip next-hop 10.10.11.3 track 2
+exit
+
+route-map PBR permit 30
+ match ip address PBR_TRAFFIC
+ set ip next-hop 10.10.11.4 track 3
+exit
+
+interface ethernet1/1/4
+ ip policy route-map PBR
+
+
+! view PBR info
+!  show route-map PBR pbr-statistics
+
+
+! Static route to trusted, via firewalls
+ip route 10.10.11.64/27 10.10.11.2
+ip route 10.10.11.64/27 10.10.11.3
+ip route 10.10.11.64/27 10.10.11.4

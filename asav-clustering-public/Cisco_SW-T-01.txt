@@ -1,0 +1,151 @@
+conf t
+
+hostname SW-T-01
+no logging console
+no logging monitor
+no ip domain lookup
+
+bridge-domain 200
+bridge-domain 212
+
+
+interface BDI200
+ description test
+ ip address 10.10.200.1 255.255.255.0
+ no shut
+!
+interface BDI212
+ description outside-10.10.11.64/27
+ ip address 10.10.11.70 255.255.255.224
+ no shut
+
+
+!-----------------------------
+!-----------------------------
+!--- Example of Tagged ----
+interface GigabitEthernet1
+ description To-ASAv-1
+ no ip address
+ negotiation auto
+ service instance 212 ethernet
+  rewrite ingress tag pop 1 symmetric
+  encapsulation dot1q 212
+  bridge-domain 212
+!-----------------------------
+
+
+!--- Example of Untagged ----
+interface GigabitEthernet1
+ description To-ASAv-1
+ no ip address
+ negotiation auto
+ service instance 212 ethernet
+  encapsulation untagged
+  bridge-domain 212
+!-----------------------------
+!-----------------------------
+!-----------------------------
+
+
+
+
+interface GigabitEthernet1
+ description To-ASAv-1
+ no ip address
+ negotiation auto
+ service instance 212 ethernet
+  encapsulation untagged
+  bridge-domain 212
+ !
+!
+interface GigabitEthernet2
+ description To-ASAv-2
+ no ip address
+ negotiation auto
+ service instance 212 ethernet
+  encapsulation untagged
+  bridge-domain 212
+ !
+!
+interface GigabitEthernet3
+ description To-ASAv-3
+ no ip address
+ negotiation auto
+ service instance 212 ethernet
+  encapsulation untagged
+  bridge-domain 212
+ !
+!
+interface GigabitEthernet4
+ description To-Linux
+ no ip address
+ negotiation auto
+ service instance 212 ethernet
+  encapsulation untagged
+  bridge-domain 212
+ !
+interface GigabitEthernet5
+ description Ostinato
+ no ip address
+ shutdown
+ negotiation auto
+ service instance 200 ethernet
+  encapsulation untagged
+  bridge-domain 200
+ !
+
+
+int range gi1-4
+ no shut
+
+
+
+! ip route static install-routes-recurse-via-nexthop
+ip route 10.10.11.66 255.255.255.255 gigabitEthernet 1
+ip route 10.10.11.67 255.255.255.255 gigabitEthernet 2
+ip route 10.10.11.68 255.255.255.255 gigabitEthernet 3
+
+
+!
+ip sla 1
+ icmp-echo 10.10.11.66 source-interface bdi212
+ frequency 5
+ timeout 5000 
+ exit
+ip sla schedule 1 life forever start-time now
+
+ip sla 2
+ icmp-echo 10.10.11.67 source-interface bdi212
+ frequency 5
+ timeout 5000
+ exit
+ip sla schedule 2 life forever start-time now
+
+ip sla 3
+ icmp-echo 10.10.11.68 source-interface bdi212
+ frequency 5
+ timeout 5000
+ exit
+ip sla schedule 3 life forever start-time now
+
+
+track 1 ip sla 1 reachability
+ delay down 3 up 3
+
+track 2 ip sla 2 reachability
+ delay down 3 up 3
+
+track 3 ip sla 3 reachability
+ delay down 3 up 3
+
+
+! Static route to trusted, via firewalls
+ip route 10.10.11.0 255.255.255.240 10.10.11.66 track 1
+ip route 10.10.11.0 255.255.255.240 10.10.11.67 track 2
+ip route 10.10.11.0 255.255.255.240 10.10.11.68 track 3
+
+! Static routes to the internet via firewalls
+ip route 0.0.0.0 0.0.0.0 10.10.11.66 track 1
+ip route 0.0.0.0 0.0.0.0 10.10.11.67 track 2
+ip route 0.0.0.0 0.0.0.0 10.10.11.68 track 3
+
