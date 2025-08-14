@@ -1,0 +1,321 @@
+Building configuration...
+
+Current configuration : 8044 bytes
+!
+! Last configuration change at 19:26:59 UTC Thu Aug 14 2025
+!
+version 17.9
+service timestamps debug datetime msec
+service timestamps log datetime msec
+service call-home
+platform qfp utilization monitor load 80
+platform punt-keepalive disable-kernel-core
+platform console serial
+!
+hostname Hub2
+!
+boot-start-marker
+boot-end-marker
+!
+!
+vrf definition Internet
+ !
+ address-family ipv4
+ exit-address-family
+!
+no logging console
+no logging monitor
+aaa new-model
+!
+!
+aaa authorization network FLEXVPN_LOCAL local 
+!
+!
+aaa session-id common
+!
+!
+!
+!
+!
+!
+!
+no ip domain lookup
+ip domain name aflab.cisco.com
+!
+!
+!
+login on-success log
+!
+!
+!
+!
+!
+!
+!
+subscriber templating
+! 
+! 
+! 
+! 
+!
+!
+!
+multilink bundle-name authenticated
+!
+!
+!
+!
+!
+!
+!
+!
+crypto pki trustpoint SLA-TrustPoint
+ enrollment pkcs12
+ revocation-check crl
+!
+crypto pki trustpoint TP-self-signed-2561266643
+ enrollment selfsigned
+ subject-name cn=IOS-Self-Signed-Certificate-2561266643
+ revocation-check none
+ rsakeypair TP-self-signed-2561266643
+!
+!
+crypto pki certificate chain SLA-TrustPoint
+ certificate ca 01
+  30820321 30820209 A0030201 02020101 300D0609 2A864886 F70D0101 0B050030 
+  32310E30 0C060355 040A1305 43697363 6F312030 1E060355 04031317 43697363 
+  6F204C69 63656E73 696E6720 526F6F74 20434130 1E170D31 33303533 30313934 
+  3834375A 170D3338 30353330 31393438 34375A30 32310E30 0C060355 040A1305 
+  43697363 6F312030 1E060355 04031317 43697363 6F204C69 63656E73 696E6720 
+  526F6F74 20434130 82012230 0D06092A 864886F7 0D010101 05000382 010F0030 
+  82010A02 82010100 A6BCBD96 131E05F7 145EA72C 2CD686E6 17222EA1 F1EFF64D 
+  CBB4C798 212AA147 C655D8D7 9471380D 8711441E 1AAF071A 9CAE6388 8A38E520 
+  1C394D78 462EF239 C659F715 B98C0A59 5BBB5CBD 0CFEBEA3 700A8BF7 D8F256EE 
+  4AA4E80D DB6FD1C9 60B1FD18 FFC69C96 6FA68957 A2617DE7 104FDC5F EA2956AC 
+  7390A3EB 2B5436AD C847A2C5 DAB553EB 69A9A535 58E9F3E3 C0BD23CF 58BD7188 
+  68E69491 20F320E7 948E71D7 AE3BCC84 F10684C7 4BC8E00F 539BA42B 42C68BB7 
+  C7479096 B4CB2D62 EA2F505D C7B062A4 6811D95B E8250FC4 5D5D5FB8 8F27D191 
+  C55F0D76 61F9A4CD 3D992327 A8BB03BD 4E6D7069 7CBADF8B DF5F4368 95135E44 
+  DFC7C6CF 04DD7FD1 02030100 01A34230 40300E06 03551D0F 0101FF04 04030201 
+  06300F06 03551D13 0101FF04 05300301 01FF301D 0603551D 0E041604 1449DC85 
+  4B3D31E5 1B3E6A17 606AF333 3D3B4C73 E8300D06 092A8648 86F70D01 010B0500 
+  03820101 00507F24 D3932A66 86025D9F E838AE5C 6D4DF6B0 49631C78 240DA905 
+  604EDCDE FF4FED2B 77FC460E CD636FDB DD44681E 3A5673AB 9093D3B1 6C9E3D8B 
+  D98987BF E40CBD9E 1AECA0C2 2189BB5C 8FA85686 CD98B646 5575B146 8DFC66A8 
+  467A3DF4 4D565700 6ADF0F0D CF835015 3C04FF7C 21E878AC 11BA9CD2 55A9232C 
+  7CA7B7E6 C1AF74F6 152E99B7 B1FCF9BB E973DE7F 5BDDEB86 C71E3B49 1765308B 
+  5FB0DA06 B92AFE7F 494E8A9E 07B85737 F3A58BE1 1A48A229 C37C1E69 39F08678 
+  80DDCD16 D6BACECA EEBC7CF9 8428787B 35202CDC 60E4616A B623CDBD 230E3AFB 
+  418616A9 4093E049 4D10AB75 27E86F73 932E35B5 8862FDAE 0275156F 719BB2F0 
+  D697DF7F 28
+  	quit
+crypto pki certificate chain TP-self-signed-2561266643
+ certificate self-signed 01
+  30820330 30820218 A0030201 02020101 300D0609 2A864886 F70D0101 05050030 
+  31312F30 2D060355 04031326 494F532D 53656C66 2D536967 6E65642D 43657274 
+  69666963 6174652D 32353631 32363636 3433301E 170D3235 30383132 31373133 
+  30315A17 0D333530 38313231 37313330 315A3031 312F302D 06035504 03132649 
+  4F532D53 656C662D 5369676E 65642D43 65727469 66696361 74652D32 35363132 
+  36363634 33308201 22300D06 092A8648 86F70D01 01010500 0382010F 00308201 
+  0A028201 0100E8C6 F690FF8A 5B7BACE5 EDFAB0F9 595C5497 C4A7FAE4 1B3C13A1 
+  4E373BAE 10BB0185 DEE265D4 2B0E6B45 32EFCAF5 A2B5CF2B 180FC618 D708A943 
+  59856D09 9DD8780B DEBD723B EB5E3A99 B050E29D 78C54650 05F83FDD 382A478D 
+  B77DD419 8571D206 37DD1A48 F4C28625 3CF87715 BBE6D9C5 C5F717DB 872A0734 
+  794EC571 1C08E9D5 475B5BFE EECB36AE 11466844 76DB07EE 312D5BF9 B5728403 
+  60DBB5FD EC147610 4B799104 844A4C82 8BA52EBC 4D038755 BC844AE5 C40EC71C 
+  9941E4B8 C1488AE8 4A1EEF5B 4C76D435 CAFA256B FDBD5268 093CF8BE 61297ECB 
+  1729913B 2C53704C 5A0E4194 5EE65A23 B79C5415 10C37E14 BE8DFF6E B10BD9FF 
+  40864DCB F8AF0203 010001A3 53305130 0F060355 1D130101 FF040530 030101FF 
+  301F0603 551D2304 18301680 14F20F70 D117DFD1 D4104096 0FA52BAE F7C41EF8 
+  EE301D06 03551D0E 04160414 F20F70D1 17DFD1D4 1040960F A52BAEF7 C41EF8EE 
+  300D0609 2A864886 F70D0101 05050003 82010100 776D7441 51F8228B 98D8B8B4 
+  10AC72AF A6DFB77C FD9CB54B 150200E5 695E7778 D99E08A4 CF9BCAD7 CC13CF62 
+  159ADAD2 49FB974D E81168E6 9F91E7CC DF5B4FA3 75657F0D 3C5956DB DA83443D 
+  C91EDF1A CA9A2372 2866A834 1778BC1C 70C03196 02AEC1C5 A79A32B5 3AEFCB23 
+  E218B90F A1C22F58 332CE80B 9AD8E6DC 61E63CB0 5CD9381C A0B76725 60B85690 
+  0672414E 8908FAC8 4DD6E720 2550C1BA 3846BD06 6F53F97B 3E70B7CA 936CD7EB 
+  5305F477 87E8C3A1 A0B094CE 7C199E6B 5CF25DDE CA6DD998 A7839616 35ED3E06 
+  BDCE06AC 4290B5B2 6CBBA61E 3D5068AF 061A0EC3 302B6539 D3BF25D9 971EA27A 
+  D8912BF4 A6AD83B7 B5557E70 E0D058B9 768B8B7F
+  	quit
+!
+!
+!
+!
+!
+!
+!
+!
+license udi pid C8000V sn 9Y1VECT7635
+license boot level network-advantage addon dna-advantage
+diagnostic bootup level minimal
+memory free low-watermark processor 63718
+!
+!
+spanning-tree extend system-id
+!
+!
+!
+!
+redundancy
+!
+crypto ikev2 authorization policy IKEV2_AUTHORIZATION 
+ pool FLEXPOOL
+ def-domain aflab.cisco.com
+ route set interface
+ route set access-list FLEXVPN_ROUTES
+!
+crypto ikev2 proposal IKEV2-PROPOSAL 
+ encryption aes-gcm-256
+ prf sha512
+ group 20
+!
+crypto ikev2 policy IKEV2_POLICY 
+ match fvrf Internet
+ proposal IKEV2-PROPOSAL
+!
+crypto ikev2 keyring IKEV2_KEYRING
+ peer remote_sites
+  address 0.0.0.0 0.0.0.0
+  pre-shared-key local cisco
+  pre-shared-key remote cisco
+ !
+!
+!
+crypto ikev2 profile IKEV2_PROFILE
+ match fvrf Internet
+ match identity remote fqdn domain aflab.cisco.com
+ identity local fqdn Hub2.aflab.cisco.com
+ authentication remote pre-share
+ authentication local pre-share
+ keyring local IKEV2_KEYRING
+ aaa authorization group psk list FLEXVPN_LOCAL IKEV2_AUTHORIZATION
+ virtual-template 1
+!
+!
+!
+!
+! 
+!
+!
+!
+!
+!
+!
+!
+!
+crypto ipsec transform-set TRANSFORM_SET esp-gcm 256 
+ mode tunnel
+!
+crypto ipsec profile IPSEC_PROFILE
+ set transform-set TRANSFORM_SET 
+!
+!
+!
+!
+!
+!
+! 
+! 
+!
+!
+interface Loopback999
+ description Local_VPN_SourceIP
+ ip address 10.0.0.2 255.255.255.255
+!
+interface GigabitEthernet1
+ description Internet
+ vrf forwarding Internet
+ ip address 10.20.2.2 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet2
+ description Hub-Net1
+ ip address 192.168.200.1 255.255.255.0
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet3
+ no ip address
+ shutdown
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface GigabitEthernet4
+ no ip address
+ shutdown
+ negotiation auto
+ no mop enabled
+ no mop sysid
+!
+interface Virtual-Template1 type tunnel
+ ip unnumbered Loopback999
+ ip mtu 1400
+ ip nhrp network-id 200
+ ip nhrp redirect
+ ip tcp adjust-mss 1360
+ delay 4000
+ tunnel source GigabitEthernet1
+ tunnel vrf Internet
+ tunnel protection ipsec profile IPSEC_PROFILE ikev2-profile IKEV2_PROFILE
+!
+ip local pool FLEXPOOL 10.100.2.10 10.100.2.250
+ip forward-protocol nd
+no ip http server
+ip http secure-server
+!
+ip route vrf Internet 0.0.0.0 0.0.0.0 10.20.2.1
+!
+ip access-list standard FLEXVPN_ROUTES
+ 10 permit 192.168.200.0 0.0.0.255
+ 20 permit any
+!
+!
+!
+!
+!
+!
+!
+!
+control-plane
+!
+!
+mgcp behavior rsip-range tgcp-only
+mgcp behavior comedia-role none
+mgcp behavior comedia-check-media-src disable
+mgcp behavior comedia-sdp-force disable
+!
+mgcp profile default
+!
+!
+!
+!
+!
+!
+line con 0
+ exec-timeout 0 0
+ stopbits 1
+line aux 0
+line vty 0 4
+ exec-timeout 0 0
+ length 0
+ transport input ssh
+!
+call-home
+ ! If contact email address in call-home is configured as sch-smart-licensing@cisco.com
+ ! the email address configured in Cisco Smart License Portal will be used as contact email address to send SCH notifications.
+ contact-email-addr sch-smart-licensing@cisco.com
+ profile "CiscoTAC-1"
+  active
+  destination transport-method http
+!
+!
+!
+!
+!
+!
+end
